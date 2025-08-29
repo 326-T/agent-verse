@@ -1,0 +1,17 @@
+{
+  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.analysis.useLibraryCodeForTypes": true,
+  "[python]": {
+    "editor.tabSize": 2,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit",
+      "source.fixAll": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "notebook.formatOnSave.enabled": true,
+  "notebook.codeActionsOnSave": {
+    "notebook.source.organizeImports": "explicit",
+    "notebook.source.fixAll": "explicit"
+  }
+}
