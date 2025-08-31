@@ -1,49 +1,15 @@
-import random
+from langgraph.graph import StateGraph
 
-from langchain_core.messages import HumanMessage
-from langchain_core.messages.utils import AnyMessage
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, add_messages
-from langgraph.types import interrupt
-from pydantic import BaseModel
-from typing_extensions import Annotated
-
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-
-
-class CustomMessageState(BaseModel):
-    should_continue: bool = True
-    should_escalate: bool = False
-    messages: Annotated[list[AnyMessage], add_messages] = []
-
-
-def user(state: CustomMessageState) -> CustomMessageState:
-    """
-    ユーザノード
-    """
-    user_input = interrupt("Please enter user input:")
-    message = HumanMessage(content=user_input)
-    state.messages.append(message)
-    return state
-
-
-def coordinator(state: CustomMessageState) -> CustomMessageState:
-    """
-    コーディネーターノード
-    """
-    if random.random() < 0.3:
-        state.should_continue = False
-    return state
-
-
-def operator(state: CustomMessageState) -> CustomMessageState:
-    """
-    オペレータノード
-    """
-    operator_input = interrupt("Please enter operator input:")
-    message = HumanMessage(content=operator_input)
-    state.messages.append(message)
-    return state
+from project.agent import (
+    agent_evaluator,
+    agent_generator,
+    agent_optimizer,
+    agents,
+    coordinator,
+    orchestrator,
+)
+from project.human import operator, user
+from project.model import CustomMessageState
 
 
 def operator_router(state: CustomMessageState):
@@ -55,15 +21,6 @@ def operator_router(state: CustomMessageState):
     return "agent_generator"
 
 
-def orchestrator(state: CustomMessageState):
-    """
-    オーケストレーターノード
-    """
-    if random.random() < 0.3:
-        state.should_escalate = True
-    return state
-
-
 def orchestrator_router(state: CustomMessageState):
     """
     オーケストレータールーター
@@ -73,15 +30,6 @@ def orchestrator_router(state: CustomMessageState):
     return "agents"
 
 
-def agents(state: CustomMessageState) -> CustomMessageState:
-    """
-    ベースエージェント
-    """
-    msg = llm.invoke(state.messages)
-    state.messages.append(msg)
-    return state
-
-
 def agents_router(state: CustomMessageState):
     """
     エージェントルーター
@@ -89,27 +37,6 @@ def agents_router(state: CustomMessageState):
     if state.should_continue:
         return "coordinator"
     return "agent_evaluator"
-
-
-def agent_generator(state: CustomMessageState) -> CustomMessageState:
-    """
-    エージェントを生成する
-    """
-    return state
-
-
-def agent_evaluator(state: CustomMessageState) -> CustomMessageState:
-    """
-    エージェントを評価する
-    """
-    return state
-
-
-def agent_optimizer(state: CustomMessageState) -> CustomMessageState:
-    """
-    エージェントを最適化する
-    """
-    return state
 
 
 builder = StateGraph(CustomMessageState)
