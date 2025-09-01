@@ -14,15 +14,6 @@ from project.human import operator, user
 from project.model import CustomMessageState
 
 
-def operator_router(state: CustomMessageState):
-    """
-    オペレータールーター
-    """
-    if state.should_continue:
-        return "coordinator"
-    return "agent_generator"
-
-
 def orchestrator_router(state: CustomMessageState):
     """
     オーケストレータールーター
@@ -32,12 +23,14 @@ def orchestrator_router(state: CustomMessageState):
     return "agents"
 
 
-def agents_router(state: CustomMessageState):
+def coordinator_router(state: CustomMessageState):
     """
-    エージェントルーター
+    コーディネータールーター
     """
     if state.should_continue:
-        return "coordinator"
+        return "user"
+    if state.should_escalate:
+        return "agent_generator"
     return "agent_evaluator"
 
 
@@ -54,29 +47,23 @@ def get_graph():
     builder.add_node(agent_optimizer.__name__, agent_optimizer)
     builder.add_edge("__start__", user.__name__)
     builder.add_edge(user.__name__, orchestrator.__name__)
-    builder.add_edge(coordinator.__name__, user.__name__)
+    builder.add_edge(operator.__name__, coordinator.__name__)
+    builder.add_edge(agents.__name__, coordinator.__name__)
     builder.add_conditional_edges(
         orchestrator.__name__,
         orchestrator_router,
         {"agents": agents.__name__, "operator": operator.__name__},
     )
     builder.add_conditional_edges(
-        operator.__name__,
-        operator_router,
+        coordinator.__name__,
+        coordinator_router,
         {
-            "coordinator": coordinator.__name__,
+            "user": user.__name__,
             "agent_generator": agent_generator.__name__,
-        },
-    )
-    builder.add_edge(agent_generator.__name__, "__end__")
-    builder.add_conditional_edges(
-        agents.__name__,
-        agents_router,
-        {
-            "coordinator": coordinator.__name__,
             "agent_evaluator": agent_evaluator.__name__,
         },
     )
+    builder.add_edge(agent_generator.__name__, "__end__")
     builder.add_edge(agent_evaluator.__name__, agent_optimizer.__name__)
     builder.add_edge(agent_optimizer.__name__, "__end__")
     return builder

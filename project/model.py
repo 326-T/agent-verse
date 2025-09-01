@@ -7,4 +7,6 @@ from typing_extensions import Annotated
 class CustomMessageState(BaseModel):
     should_continue: bool = True
     should_escalate: bool = False
+    selected_agent: str = ""
+    selected_agent_id: str = ""
     messages: Annotated[list[AnyMessage], add_messages] = []
