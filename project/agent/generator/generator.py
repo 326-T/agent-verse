@@ -1,11 +1,9 @@
 from uuid import uuid4
 
-from langchain_openai import ChatOpenAI
 from langgraph.store.base import BaseStore
 
+from project.llm import get_chatmodel
 from project.model import CustomMessageState
-
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 
 def agent_generator(state: CustomMessageState, store: BaseStore) -> CustomMessageState:
@@ -13,9 +11,11 @@ def agent_generator(state: CustomMessageState, store: BaseStore) -> CustomMessag
     エージェントプロンプトを生成し保存するノード
     """
     generation_prompt = f"""
-あなたはプロンプトに基づき問い合わせを「ステップ・バイ・ステップ」で解決するプロセス設計の専門家です。以下は会話ログ（state.messages）です。これを解析して、問い合わせを解決するために必要な処理（アクション）を順序立てて整理した「実行可能な手順書（ステップ順のプロセス）」を生成してください。出力は必ず有効なYAML形式のみとし、説明や注釈、追加文は一切含めないでください。
+あなたはプロンプトに基づき問い合わせを「ステップ・バイ・ステップ」で解決するプロセス設計の専門家です。
+以下は会話ログです。これを解析して、問い合わせを解決するために必要な処理（アクション）を順序立てて整理した「実行可能な手順書（ステップ順のプロセス）」を生成してください。
+出力は必ず有効なYAML形式のみとし、説明や注釈、追加文は一切含めないでください。
 
-会話ログ（state.messages）:
+会話ログ:
 {state.messages}
 
 出力フォーマット（必ずこの構造で有効なYAMLを返すこと）:
@@ -74,7 +74,7 @@ plan:
 - 出力は厳密に有効なYAMLのみ。説明文や注釈、追加出力は一切禁止。
 """
 
-    msg = llm.invoke(generation_prompt)
+    msg = get_chatmodel().invoke(generation_prompt)
     store.put(
         namespace=("prompts", "agents"),
         key=str(uuid4()),
