@@ -2,7 +2,7 @@ from functools import lru_cache
 
 from langgraph.graph import StateGraph
 
-from project.agent import (
+from project.graph.agent import (
     agent_evaluator,
     agent_generator,
     agent_optimizer,
@@ -10,8 +10,8 @@ from project.agent import (
     coordinator,
     orchestrator,
 )
-from project.human import operator, user
-from project.model import CustomMessageState
+from project.graph.human import operator, user
+from project.graph.model import CustomMessageState
 
 
 def orchestrator_router(state: CustomMessageState):

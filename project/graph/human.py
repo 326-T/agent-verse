@@ -1,7 +1,7 @@
 from langchain_core.messages import HumanMessage
 from langgraph.types import interrupt
 
-from project.model import CustomMessageState
+from project.graph.model import CustomMessageState
 
 
 def user(state: CustomMessageState) -> CustomMessageState:

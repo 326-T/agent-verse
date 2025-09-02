@@ -2,7 +2,7 @@ import logging
 
 from langgraph.store.base import BaseStore
 
-from project.model import CustomMessageState
+from project.graph.model import CustomMessageState
 
 
 def orchestrator(state: CustomMessageState, store: BaseStore):

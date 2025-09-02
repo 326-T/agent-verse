@@ -1,4 +1,4 @@
-from project.model import CustomMessageState
+from project.graph.model import CustomMessageState
 
 
 def coordinator(state: CustomMessageState) -> CustomMessageState:

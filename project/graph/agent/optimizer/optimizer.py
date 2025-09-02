@@ -1,22 +1,26 @@
-from uuid import uuid4
-
 from langgraph.store.base import BaseStore
 
-from project.llm import get_chatmodel
-from project.model import CustomMessageState
+from project.graph.llm import get_chatmodel
+from project.graph.model import CustomMessageState
 
 
-def agent_generator(state: CustomMessageState, store: BaseStore) -> CustomMessageState:
+def agent_optimizer(state: CustomMessageState, store: BaseStore) -> CustomMessageState:
     """
-    エージェントプロンプトを生成し保存するノード
+    エージェントを最適化し更新するノード
     """
-    generation_prompt = f"""
+    optimization_prompt = f"""
 あなたはプロンプトに基づき問い合わせを「ステップ・バイ・ステップ」で解決するプロセス設計の専門家です。
-以下は会話ログです。これを解析して、問い合わせを解決するために必要な処理（アクション）を順序立てて整理した「実行可能な手順書（ステップ順のプロセス）」を生成してください。
+以下に示した会話ログ、使用したプロンプトを解析して、問い合わせを解決するために必要な処理（アクション）を順序立てて整理した「実行可能な手順書（ステップ順のプロセス）」を生成してください。
 出力は必ず有効なYAML形式のみとし、説明や注釈、追加文は一切含めないでください。
 
 会話ログ:
 {state.messages}
+
+エージェントプロンプト:
+{state.selected_agent}
+
+今回のエージェントによる対応の評価:
+{state.selected_agent_evaluation}
 
 出力フォーマット（必ずこの構造で有効なYAMLを返すこと）:
 plan:
@@ -73,12 +77,12 @@ plan:
 - derived_from に session_id や conversation_id があれば入れること、なければ null。
 - 出力は厳密に有効なYAMLのみ。説明文や注釈、追加出力は一切禁止。
 """
-
-    msg = get_chatmodel().invoke(generation_prompt)
+    msg = get_chatmodel().invoke(optimization_prompt)
     store.put(
         namespace=("prompts", "agents"),
-        key=str(uuid4()),
-        value={"scenario": msg.content, "src_prompt": generation_prompt},
+        key=state.selected_agent_id,
+        value={"scenario": msg.content, "src_prompt": optimization_prompt},
         index=["scenario"],
     )
+
     return state
