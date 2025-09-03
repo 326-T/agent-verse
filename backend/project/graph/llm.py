@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import List
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -15,7 +14,3 @@ def get_chatmodel():
 @lru_cache
 def get_embedding_model():
     return OpenAIEmbeddings(model="text-embedding-3-small")
-
-
-def embed(texts: List[str]) -> List[List[float]]:
-    return get_embedding_model().embed_documents(texts)

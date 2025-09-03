@@ -22,7 +22,7 @@ class Envelope(BaseModel):
     payload: Union[CustomMessageState, ClientPayload]
 
 
-@router.websocket("/ws")
+@router.websocket("/ws/text")
 async def websocket_endpoint(
     websocket: WebSocket,
     graph: Annotated[CompiledStateGraph, Depends(get_graph)],

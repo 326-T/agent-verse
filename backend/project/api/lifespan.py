@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, FastAPI
@@ -10,6 +11,7 @@ from psycopg.rows import dict_row
 
 from project.graph.env import Settings, get_settings
 from project.graph.graph import get_graph_builder
+from project.graph.llm import get_embedding_model
 
 
 async def get_checkpointer(
@@ -33,10 +35,13 @@ async def get_store(
         prepare_threshold=0,
         row_factory=dict_row,
     )
-    return AsyncPostgresStore(conn)
+    return AsyncPostgresStore(
+        conn, index={"embed": get_embedding_model(), "dims": 1536, "fields": ["$"]}
+    )
 
 
-async def get_graph(
+@lru_cache
+def get_graph(
     checkpointer: Annotated[AsyncPostgresSaver, Depends(get_checkpointer)],
     store: Annotated[AsyncPostgresStore, Depends(get_store)],
 ) -> CompiledStateGraph:
