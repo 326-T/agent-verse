@@ -1,11 +1,54 @@
-from fastapi import APIRouter, WebSocket
+import logging
+import uuid
+from functools import lru_cache
+from typing import Annotated, Dict, Literal, Union
+
+from fastapi import APIRouter, Depends, WebSocket
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.store.postgres import PostgresStore
+from langgraph.types import Command
+from pydantic import BaseModel
+
+from project.graph.graph import get_checkpointer, get_graph_builder, get_store
+from project.graph.model import CustomMessageState
 
 router = APIRouter()
 
 
+class ClientPayload(BaseModel):
+    name: Literal["user", "operator"]
+    content: str
+
+
+class Envelope(BaseModel):
+    payload: Union[CustomMessageState, ClientPayload]
+
+
+@lru_cache
+def get_graph(
+    checkpointer: Annotated[PostgresSaver, Depends(get_checkpointer)],
+    store: Annotated[PostgresStore, Depends(get_store)],
+):
+    return get_graph_builder().compile(checkpointer=checkpointer, store=store)
+
+
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(
+    websocket: WebSocket,
+    graph: Annotated[CompiledStateGraph, Depends(get_graph)],
+    config: Annotated[Dict, Depends(lambda: {"thread_id": str(uuid.uuid4())})],
+):
     await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+    logging.info(f"websocket connected with thread_id: {config['thread_id']}")
+    result: CustomMessageState = await graph.ainvoke({}, config=config)
+    while "__interrupt__" in result:
+        await websocket.send_json(Envelope(payload=result).model_dump())
+        data = await websocket.receive_json()
+        envelope = Envelope.model_validate(data)
+        result: CustomMessageState = await graph.ainvoke(
+            Command(resume=envelope.payload.content), config=config
+        )
+
+    await websocket.send_json(Envelope(payload=result).model_dump())
+    await websocket.close()

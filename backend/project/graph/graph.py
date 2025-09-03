@@ -1,6 +1,10 @@
 from functools import lru_cache
 
+from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import StateGraph
+from langgraph.store.postgres import PostgresStore
+from psycopg import Connection
+from psycopg.rows import dict_row
 
 from project.graph.agent import (
     agent_evaluator,
@@ -10,7 +14,9 @@ from project.graph.agent import (
     coordinator,
     orchestrator,
 )
+from project.graph.env import get_settings
 from project.graph.human import operator, user
+from project.graph.llm import get_embedding_model
 from project.graph.model import CustomMessageState
 
 
@@ -35,7 +41,34 @@ def coordinator_router(state: CustomMessageState):
 
 
 @lru_cache
-def get_graph():
+def get_checkpointer() -> PostgresSaver:
+    conn = Connection.connect(
+        get_settings().db_uri,
+        autocommit=True,
+        prepare_threshold=0,
+        row_factory=dict_row,
+    )
+    checkpointer = PostgresSaver(conn)
+    checkpointer.setup()
+    return checkpointer
+
+
+@lru_cache
+def get_store() -> PostgresStore:
+    conn = Connection.connect(
+        get_settings().db_uri,
+        autocommit=True,
+        prepare_threshold=0,
+        row_factory=dict_row,
+    )
+    store = PostgresStore(
+        conn, index={"embed": get_embedding_model(), "dims": 1536, "fields": ["$"]}
+    )
+    store.setup()
+    return store
+
+
+def get_graph_builder():
     builder = StateGraph(CustomMessageState)
     builder.add_node(user.__name__, user)
     builder.add_node(operator.__name__, operator)

@@ -2,7 +2,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from project.graph.graph import get_graph  # noqa: E402
+from project.graph.graph import (  # noqa: E402
+    get_graph_builder,
+)
 
-graph = get_graph()
-app = graph.compile()
+builder = get_graph_builder()
+app = builder.compile()

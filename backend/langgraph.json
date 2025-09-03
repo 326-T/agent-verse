@@ -3,7 +3,7 @@
     "agent": "./project/graph/main.py:app"
   },
   "python_version": "3.12",
-  "dependencies": ["./"],
+  "dependencies": ["."],
   "env": "./.env",
   "store": {
     "index": {
