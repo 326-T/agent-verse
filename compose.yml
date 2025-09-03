@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: pgvector
       POSTGRES_DB: pgvector
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - ./init_pgvector.sql:/docker-entrypoint-initdb.d/init_pgvector.sql
       - ./.data/pgvector:/var/lib/postgresql/data

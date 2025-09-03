@@ -1,16 +1,13 @@
 import logging
 import uuid
-from functools import lru_cache
 from typing import Annotated, Dict, Literal, Union
 
 from fastapi import APIRouter, Depends, WebSocket
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.store.postgres import PostgresStore
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from project.graph.graph import get_checkpointer, get_graph_builder, get_store
+from project.api.lifespan import get_graph
 from project.graph.model import CustomMessageState
 
 router = APIRouter()
@@ -25,22 +22,18 @@ class Envelope(BaseModel):
     payload: Union[CustomMessageState, ClientPayload]
 
 
-@lru_cache
-def get_graph(
-    checkpointer: Annotated[PostgresSaver, Depends(get_checkpointer)],
-    store: Annotated[PostgresStore, Depends(get_store)],
-):
-    return get_graph_builder().compile(checkpointer=checkpointer, store=store)
-
-
 @router.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
     graph: Annotated[CompiledStateGraph, Depends(get_graph)],
-    config: Annotated[Dict, Depends(lambda: {"thread_id": str(uuid.uuid4())})],
+    config: Annotated[
+        Dict, Depends(lambda: {"configurable": {"thread_id": str(uuid.uuid4())}})
+    ],
 ):
     await websocket.accept()
-    logging.info(f"websocket connected with thread_id: {config['thread_id']}")
+    logging.info(
+        f"websocket connected with thread_id: {config['configurable']['thread_id']}"
+    )
     result: CustomMessageState = await graph.ainvoke({}, config=config)
     while "__interrupt__" in result:
         await websocket.send_json(Envelope(payload=result).model_dump())

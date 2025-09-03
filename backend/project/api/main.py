@@ -1,9 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 
+from project.api.lifespan import lifespan
 from project.api.router import hello
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(hello.router)
 

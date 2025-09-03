@@ -1,7 +1,10 @@
 from functools import lru_cache
 from typing import List
 
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+
+load_dotenv()
 
 
 @lru_cache

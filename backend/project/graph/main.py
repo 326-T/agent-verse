@@ -1,7 +1,3 @@
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from project.graph.graph import (  # noqa: E402
     get_graph_builder,
 )
