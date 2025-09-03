@@ -46,14 +46,7 @@ export function ChatUI() {
 	};
 
 	return (
-		<div className="flex h-screen flex-col bg-background">
-			{/* Header */}
-			<div className="border-b border-border bg-card px-4 py-3">
-				<h1 className="text-lg font-semibold text-foreground">
-					Chat Assistant
-				</h1>
-			</div>
-
+		<div className="flex h-full flex-col bg-background">
 			{/* Messages */}
 			<div className="flex-1 overflow-hidden">
 				<div className="h-full overflow-y-auto px-4 py-4">
