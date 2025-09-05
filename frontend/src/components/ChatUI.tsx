@@ -1,48 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
+import useWebSocket from "react-use-websocket";
 
-interface Message {
-	id: string;
+interface MessageState {
+	should_continue: boolean;
+	should_escalate: boolean;
+	selected_agent: string | null;
+	selected_agent_id: string | null;
+	selected_agent_evaluation: string | null;
+	messages: any[];
+}
+
+interface ClientPayload {
+	name: "user" | "operator";
 	content: string;
-	role: "user" | "assistant";
-	timestamp: Date;
+}
+
+interface Envelop {
+	payload: MessageState | ClientPayload;
 }
 
 export function ChatUI() {
-	const [messages, setMessages] = useState<Message[]>([
-		{
-			id: "1",
-			content: "Hello! I'm an AI assistant. How can I help you today?",
-			role: "assistant",
-			timestamp: new Date(),
-		},
-	]);
+	const { sendMessage, lastMessage } = useWebSocket(
+		"ws://localhost:8000/ws/text",
+	);
 	const [isLoading, setIsLoading] = useState(false);
-
-	const handleSendMessage = async (content: string) => {
-		const userMessage: Message = {
-			id: Date.now().toString(),
-			content,
-			role: "user",
-			timestamp: new Date(),
-		};
-
-		setMessages((prev) => [...prev, userMessage]);
-		setIsLoading(true);
-
-		// Simulate API call
-		setTimeout(() => {
-			const assistantMessage: Message = {
-				id: (Date.now() + 1).toString(),
-				content:
-					"I'm a demo assistant. In a real application, this would be connected to your backend API.",
-				role: "assistant",
-				timestamp: new Date(),
-			};
-			setMessages((prev) => [...prev, assistantMessage]);
+	const [messageState, setMessageState] = useState<MessageState | null>(null);
+	useEffect(() => {
+		if (lastMessage) {
+			console.log("Received message:", lastMessage.data);
+			const newState: Envelop = JSON.parse(lastMessage.data);
+			setMessageState(newState.payload as MessageState);
 			setIsLoading(false);
-		}, 1000);
+		}
+	}, [lastMessage]);
+	const handleSendMessage = (content: string) => {
+		const envelop: Envelop = {
+			payload: {
+				name: "user",
+				content,
+			},
+		};
+		sendMessage(JSON.stringify(envelop));
+		setIsLoading(true);
 	};
 
 	return (
@@ -51,7 +52,7 @@ export function ChatUI() {
 			<div className="flex-1 overflow-hidden">
 				<div className="h-full overflow-y-auto px-4 py-4">
 					<div className="mx-auto max-w-3xl space-y-4">
-						{messages.map((message) => (
+						{messageState?.messages.map((message) => (
 							<ChatMessage key={message.id} message={message} />
 						))}
 						{isLoading && (
